@@ -23,7 +23,7 @@ Sys.setlocale("LC_TIME", "C") # override the Brazilian locale
 First, we load and process ("clean") the data.
 
 ```{r}
-setwd('c:/cygwin64/home/00240181/src/ReproducibleResearch')
+setwd('c:/cygwin64/home/00240181/src/ReproducibleResearch/RepData_PeerAssessment1')
 data <- read.csv("activity.csv")
 data.clean <- data[which(data$steps != "NA"), ]
 ```
