@@ -1,25 +1,106 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Reproducible Research - Peer Assignment 1"
+author: "Tiago Tresoldi"
+date: "11 de novembro de 2015"
+output: html_document
 ---
 
+This is an R Markdown document. It is my submission for the peer assignment #1 of Coursera's "Reproducible Research" course.
 
-## Loading and preprocessing the data
+# Setup
 
+We load any additional package that might be needed.
 
+```{r}
+library(plyr)
+library(lattice)
 
-## What is mean total number of steps taken per day?
+Sys.setlocale("LC_TIME", "C") # override the Brazilian locale
+```
 
+# Loading data
 
+First, we load and process ("clean") the data.
 
-## What is the average daily activity pattern?
+```{r}
+setwd('c:/cygwin64/home/00240181/src/ReproducibleResearch')
+data <- read.csv("activity.csv")
+data.clean <- data[which(data$steps != "NA"), ]
+```
 
+It is valid to check the data to have an idea about how it is structured.
 
+```{r}
+summary(data.clean)
+head(data.clean)
+```
 
-## Imputing missing values
+# First question
 
+Code for the question **What is mean total number of steps taken per day?**
 
+```{r}
+# extract the "total number of steps taken each day" and show a summary
+daily.steps <- ddply(data.clean, .(date), summarise, steps = sum(steps))
+summary(daily.steps)
 
-## Are there differences in activity patterns between weekdays and weekends?
+# plot the distribution and get a summary of the data
+hist(daily.steps$steps, main="Physical activity", xlab="steps per day")
+
+```
+
+The mean number of steps is `r sprintf('%.2f', mean(daily.steps$steps))`, while the median is `r sprintf('%.0f', median(daily.steps$steps))`.
+
+# Second question
+
+Code for the question **What is the average daily activity pattern?**
+
+```{r}
+# extract the data
+average.steps <- ddply(data.clean, .(interval), summarise, steps = mean(steps))
+
+# plot the avarage daily activity
+plot(average.steps$interval, average.steps$steps, type = "l", xlab = "5-minute interval", 
+    ylab = "steps", main = "Average activity (number of steps per interval)")
+
+# extract the 5-minute interval with the maximum number of steps
+average.steps[average.steps$steps == max(average.steps$steps), ]
+```
+
+# Third question
+
+Code for the question **Imputing missing values**.
+
+The total number of missing values is `r sum(is.na(data$steps))`.
+
+```{r}
+# replaces NA's with the 5-minute interval average
+data.corrected <- data
+data.corrected[is.na(data$steps), "steps"] <- mean(na.omit(data.corrected$steps))
+
+# extract the data
+daily.steps.corrected <- ddply(data.corrected, .(date), summarise, steps = sum(steps))
+
+# plot the distribution and get a summary of the data
+hist(daily.steps.corrected$steps, main="Physical activity (NA's corrected)", xlab="steps per day")
+```
+
+The mean number of steps is `r sprintf('%.2f', mean(daily.steps.corrected$steps))`, while the median is `r sprintf('%.0f', median(daily.steps.corrected$steps))`. These values don't differ significately from the first part of the assignment, and we conclude that in this case the missing data does not affect the analysis.
+
+# Fourth question
+
+Code for the questions **Are there differences in activity patterns between weekdays and weekends?**
+
+```{r}
+weekdays <- weekdays(as.Date(data.corrected$date))
+data.weekdays <- transform(data.corrected, day = weekdays)
+data.weekdays$wk <- ifelse(data.weekdays$day %in% c("Saturday", "Sunday"), "weekend", "weekday")
+data.week_quest <- ddply(data.weekdays, .(interval, wk), summarise, steps = mean(steps))
+
+xyplot(steps ~ interval | wk, data = data.week_quest, layout = c(1, 2), type = "l")
+
+summary(subset(data.week_quest, wk=='weekend'))
+summary(subset(data.week_quest, wk=='weekday'))
+```
+
+We verify that the average and the maximum number of steps is higher on weekdays. Future work should test the hypothesis that this difference is not random.
